@@ -1,0 +1,43 @@
+WITH aircrafts_capacity
+     AS (SELECT ac.aircraft_code,
+                ac.model,
+                count(st.seat_no) capacity
+         FROM   dst_project.aircrafts ac
+                join dst_project.seats st
+                  ON ac.aircraft_code = st.aircraft_code
+         GROUP  BY ac.aircraft_code),
+		 
+     flights_interested
+     AS (SELECT *,
+                ( ff.scheduled_arrival - ff.scheduled_departure ) scheduled_duration,
+                ( ff.actual_arrival - ff.actual_departure )       actual_duration,
+                'Anapa'                                           departure_city,
+                ta.city                                           arrival_city
+         FROM   dst_project.flights ff
+                inner join dst_project.airports ta
+                        ON ff.arrival_airport = ta.airport_code
+         WHERE  ff.departure_airport = 'AAQ'
+                AND ( date_trunc('month', ff.scheduled_departure) IN (
+                      '2017-01-01', '2017-02-01', '2017-12-01' ) )
+                AND ff.status NOT IN ( 'Cancelled' )),
+				
+     flights_fullness
+     AS (SELECT tf.flight_id,
+                count(*)    bought_tickets,
+                SUM(amount) total_flight_amount
+         FROM   dst_project.ticket_flights tf
+         GROUP  BY tf.flight_id
+         HAVING tf.flight_id IN (SELECT fi.flight_id
+                                 FROM   flights_interested fi))
+SELECT fi.*,    
+       coalesce(ff.total_flight_amount, 0)                             total_flight_amount,
+       ac.model,
+	   coalesce(ff.bought_tickets, 0),
+       ac.capacity,
+	   round(coalesce(ff.bought_tickets, 0)::NUMERIC / ac.capacity, 3) fullness_percentage
+FROM   flights_fullness ff
+       full outer join flights_interested fi
+                    ON ff.flight_id = fi.flight_id
+       join aircrafts_capacity ac
+         ON fi.aircraft_code = ac.aircraft_code
+ORDER  BY fi.flight_id ASC 
