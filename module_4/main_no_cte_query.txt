@@ -12,6 +12,11 @@ FROM   (SELECT tf.flight_id,
        full outer join (SELECT ff.*,
                                ( ff.scheduled_arrival - ff.scheduled_departure ) scheduled_duration,
                                ( ff.actual_arrival - ff.actual_departure )       actual_duration,
+                               ( ( ff.scheduled_arrival - ff.scheduled_departure ) - (
+                                 ff.actual_arrival - ff.actual_departure ) )
+                                                                                 duration_delta,
+                               ( ff.actual_arrival - ff.scheduled_arrival )      arrival_delta,
+                               ( ff.actual_departure - ff.scheduled_departure )  departure_delta,
                                'Anapa'                                           departure_city,
                                ta.city                                           arrival_city
                         FROM   dst_project.flights ff
