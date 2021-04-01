@@ -6,15 +6,15 @@ WITH aircrafts_capacity
                 join dst_project.seats st
                   ON ac.aircraft_code = st.aircraft_code
          GROUP  BY ac.aircraft_code),
-		 
      flights_interested
      AS (SELECT ff.*,
                 ( ff.scheduled_arrival - ff.scheduled_departure ) scheduled_duration,
                 ( ff.actual_arrival - ff.actual_departure )       actual_duration,
-		        (( ff.scheduled_arrival - ff.scheduled_departure ) -
-                ( ff.actual_arrival - ff.actual_departure ))      duration_delta,
-		        ( ff.actual_arrival - ff.scheduled_arrival )     arrival_delta,
-				( ff.actual_departure - ff.scheduled_departure ) departure_delta,
+                ( ( ff.scheduled_arrival - ff.scheduled_departure ) - (
+                  ff.actual_arrival - ff.actual_departure ) )
+                                                                  duration_delta,
+                ( ff.actual_arrival - ff.scheduled_arrival )      arrival_delta,
+                ( ff.actual_departure - ff.scheduled_departure )  departure_delta,
                 'Anapa'                                           departure_city,
                 ta.city                                           arrival_city
          FROM   dst_project.flights ff
@@ -24,7 +24,6 @@ WITH aircrafts_capacity
                 AND ( date_trunc('month', ff.scheduled_departure) IN (
                       '2017-01-01', '2017-02-01', '2017-12-01' ) )
                 AND ff.status NOT IN ( 'Cancelled' )),
-				
      flights_fullness
      AS (SELECT tf.flight_id,
                 count(*)    bought_tickets,
@@ -32,16 +31,30 @@ WITH aircrafts_capacity
          FROM   dst_project.ticket_flights tf
          GROUP  BY tf.flight_id
          HAVING tf.flight_id IN (SELECT fi.flight_id
+                                 FROM   flights_interested fi)),
+     flights_real_fullness
+     AS (SELECT tf.flight_id,
+                count(*) registered_passengers
+         FROM   dst_project.boarding_passes tf
+         GROUP  BY tf.flight_id
+         HAVING tf.flight_id IN (SELECT fi.flight_id
                                  FROM   flights_interested fi))
-SELECT fi.*,    
-       coalesce(ff.total_flight_amount, 0)                             total_flight_amount,
+SELECT fi.*,
+       coalesce(ff.total_flight_amount, 0)                                       total_flight_amount,
        ac.model,
-	   coalesce(ff.bought_tickets, 0)                                  bought_tickets,
+       coalesce(ff.bought_tickets, 0)                                            bought_tickets,
+       coalesce(frf.registered_passengers, 0)                                    registered_passengers,
        ac.capacity,
-	   round(coalesce(ff.bought_tickets, 0)::NUMERIC / ac.capacity, 3) fullness_percentage
+       round(coalesce(ff.bought_tickets, 0) :: NUMERIC / ac.capacity, 3)         bought_fullness_percentage,
+       round(coalesce(frf.registered_passengers, 0) :: NUMERIC / ac.capacity, 3)
+       registered_fullness_percentage,
+       round(coalesce(frf.registered_passengers, 0) :: NUMERIC / coalesce(ff.bought_tickets, 1), 3)
+       registered2bought_fullness_percentage
 FROM   flights_fullness ff
        full outer join flights_interested fi
                     ON ff.flight_id = fi.flight_id
+       full outer join flights_real_fullness frf
+                    ON fi.flight_id = frf.flight_id
        join aircrafts_capacity ac
          ON fi.aircraft_code = ac.aircraft_code
 ORDER  BY fi.flight_id ASC 
