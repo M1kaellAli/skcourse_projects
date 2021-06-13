@@ -17,7 +17,7 @@
 Ответ: score на kaggle равен 0.73875
 
 3. Прикрепите ссылку на github с вашим решением
-Ответ: 
+Ответ: https://github.com/M1kaellAli/skcourse_projects/tree/master/module_5
 
 4.*Если вы работали в команде, ответьте на вопросы: 
    Кратко опишите, что вы делали в рамках проекта.
@@ -32,12 +32,14 @@
 --  Дополнение/редактирование данных и их анализ
 
 Файлы:
+ -- readme.txt           -- описание каталога и проекта
+ -- unit5.module5.ipynb  -- jupyter notebook
  Каталог data:
-    -- test.csv   -- тест для submission
-    -- train.csv  -- данные для изучения и выводов
+    -- test.csv          -- тест для submission
+    -- train.csv         -- данные для изучения и выводов
  Каталог results:
-    -- data_df_module5_report.html    -- результат Pandas Profiling
-
+    -- data_df_module5_report.html                                          -- результат Pandas Profiling
+    -- 10x_Grid_all_cat_log_date_car_addr_sna_ft_EN_robust_robust_grid.csv  -- файл submission
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------
 
